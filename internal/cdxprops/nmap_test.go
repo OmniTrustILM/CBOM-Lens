@@ -1,8 +1,10 @@
 package cdxprops
 
 import (
+	"context"
 	"testing"
 
+	"github.com/CZERTAINLY/CBOM-lens/internal/cdxprops/cdxtest"
 	"github.com/CZERTAINLY/CBOM-lens/internal/cdxprops/czertainly"
 	"github.com/CZERTAINLY/CBOM-lens/internal/model"
 
@@ -178,4 +180,208 @@ func TestTlsCipherToCompos(t *testing.T) {
 	require.Equal(t, "1.3", compos[0].CryptoProperties.ProtocolProperties.Version)
 	require.NotNil(t, compos[0].CryptoProperties.ProtocolProperties.CipherSuites)
 	require.Len(t, *compos[0].CryptoProperties.ProtocolProperties.CipherSuites, 2)
+}
+
+func TestConverter_Nmap_ProtocolHeuristic(t *testing.T) {
+	tests := []struct {
+		name          string
+		serviceName   string
+		tunnel        string
+		hasTLSCerts   bool
+		expectedProto string
+		description   string
+	}{
+		{
+			name:          "http without ssl",
+			serviceName:   "http",
+			tunnel:        "",
+			hasTLSCerts:   false,
+			expectedProto: "http",
+			description:   "Plain HTTP should remain http",
+		},
+		{
+			name:          "http with ssl tunnel",
+			serviceName:   "http",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "https",
+			description:   "HTTP with SSL tunnel should become https",
+		},
+		{
+			name:          "ftp with ssl tunnel",
+			serviceName:   "ftp",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "ftps",
+			description:   "FTP with SSL tunnel should become ftps",
+		},
+		{
+			name:          "smtp with ssl tunnel",
+			serviceName:   "smtp",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "smtps",
+			description:   "SMTP with SSL tunnel should become smtps",
+		},
+		{
+			name:          "imap with ssl tunnel",
+			serviceName:   "imap",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "imaps",
+			description:   "IMAP with SSL tunnel should become imaps",
+		},
+		{
+			name:          "pop3 with ssl tunnel",
+			serviceName:   "pop3",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "pop3s",
+			description:   "POP3 with SSL tunnel should become pop3s",
+		},
+		{
+			name:          "ldap with ssl tunnel",
+			serviceName:   "ldap",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "ldaps",
+			description:   "LDAP with SSL tunnel should become ldaps",
+		},
+		{
+			name:          "unknown service with ssl and tls certs",
+			serviceName:   "filenet-rpc",
+			tunnel:        "ssl",
+			hasTLSCerts:   true,
+			expectedProto: "https",
+			description:   "Unknown service with SSL and TLS certs should default to https",
+		},
+		{
+			name:          "unknown service with ssl but no tls certs",
+			serviceName:   "filenet-rpc",
+			tunnel:        "ssl",
+			hasTLSCerts:   false,
+			expectedProto: "filenet-rpc+ssl",
+			description:   "Unknown service with SSL but no TLS certs should append +ssl",
+		},
+		{
+			name:          "unknown service without ssl",
+			serviceName:   "unknown-service",
+			tunnel:        "",
+			hasTLSCerts:   false,
+			expectedProto: "unknown-service",
+			description:   "Unknown service without SSL should remain unchanged",
+		},
+		{
+			name:          "custom service with ssl and tls certs",
+			serviceName:   "custom-app",
+			tunnel:        "ssl",
+			hasTLSCerts:   true,
+			expectedProto: "https",
+			description:   "Custom service with SSL and TLS certs should be https (containerized HTTP service)",
+		},
+		{
+			name:          "ssh service",
+			serviceName:   "ssh",
+			tunnel:        "",
+			hasTLSCerts:   false,
+			expectedProto: "ssh",
+			description:   "SSH should remain ssh (it has its own encryption)",
+		},
+	}
+
+	selfSigned, err := cdxtest.GenSelfSignedCert()
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			converter := NewConverter()
+
+			var tlsCerts []model.CertHit
+			if tt.hasTLSCerts {
+				tlsCerts = []model.CertHit{
+					{
+						Cert:   selfSigned.Cert,
+						Source: "NMAP",
+					},
+				}
+			}
+
+			nmapData := model.Nmap{
+				Ports: []model.NmapPort{
+					{
+						PortNumber: 8080,
+						State:      "open",
+						Protocol:   "tcp",
+						Service: model.NmapService{
+							Name:   tt.serviceName,
+							Tunnel: tt.tunnel,
+						},
+						TLSCerts: tlsCerts,
+					},
+				},
+			}
+
+			// Execute
+			detections := converter.Nmap(ctx, nmapData)
+
+			// Assert
+			require.Len(t, detections, 1, "should return one detection")
+			require.Contains(t, detections[0].Location, tt.expectedProto+"://",
+				"location should start with expected protocol: %s", tt.description)
+		})
+	}
+}
+
+func TestConverter_Nmap_MultiplePortsWithDifferentProtocols(t *testing.T) {
+	ctx := context.Background()
+	converter := NewConverter()
+
+	selfSigned, err := cdxtest.GenSelfSignedCert()
+	require.NoError(t, err)
+
+	nmapData := model.Nmap{
+		Ports: []model.NmapPort{
+			{
+				PortNumber: 80,
+				State:      "open",
+				Protocol:   "tcp",
+				Service: model.NmapService{
+					Name:   "http",
+					Tunnel: "",
+				},
+			},
+			{
+				PortNumber: 443,
+				State:      "open",
+				Protocol:   "tcp",
+				Service: model.NmapService{
+					Name:   "http",
+					Tunnel: "ssl",
+				},
+			},
+			{
+				PortNumber: 32769,
+				State:      "open",
+				Protocol:   "tcp",
+				Service: model.NmapService{
+					Name:   "filenet-rpc",
+					Tunnel: "ssl",
+				},
+				TLSCerts: []model.CertHit{
+					{
+						Cert:   selfSigned.Cert,
+						Source: "NMAP",
+					},
+				},
+			},
+		},
+	}
+
+	detections := converter.Nmap(ctx, nmapData)
+
+	require.Len(t, detections, 3, "should return three detections")
+	require.Contains(t, detections[0].Location, "http://", "first port should be http")
+	require.Contains(t, detections[1].Location, "https://", "second port should be https")
+	require.Contains(t, detections[2].Location, "https://", "third port should be https (misidentified service with TLS certs)")
 }
