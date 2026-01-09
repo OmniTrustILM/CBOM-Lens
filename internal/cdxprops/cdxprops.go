@@ -48,24 +48,27 @@ func (c Converter) WithCzertainlyExtensions(czertainly bool) Converter {
 // safe to be used by different go routines
 func (c Converter) Leak(ctx context.Context, leaks model.Leaks) *model.Detection {
 	var compos = make([]cdx.Component, 0, len(leaks.Findings))
+	var deps = make([]cdx.Dependency, 0, len(leaks.Findings))
 	for _, finding := range leaks.Findings {
-		compo, skip := c.leakToComponent(ctx, leaks.Location, finding)
-		if skip {
-			continue
-		}
-		compos = append(compos, compo)
+		leakCompos, leakDeps := c.leakToComponents(ctx, leaks.Location, finding)
+		compos = append(compos, leakCompos...)
+		deps = append(deps, leakDeps...)
 	}
 
 	if len(compos) == 0 {
 		return nil
 	}
+	if len(deps) == 0 {
+		deps = nil
+	}
 
 	typ := strings.ToUpper(string(compos[0].CryptoProperties.RelatedCryptoMaterialProperties.Type))
 	return &model.Detection{
-		Source:     "LEAKS",
-		Type:       model.DetectionType(typ),
-		Location:   leaks.Location,
-		Components: compos,
+		Source:       "LEAKS",
+		Type:         model.DetectionType(typ),
+		Location:     leaks.Location,
+		Components:   compos,
+		Dependencies: deps,
 	}
 }
 
