@@ -394,7 +394,7 @@ service:
 			"location": "filesystem:///tmp/TestAllSources3351907987/cert.pem"
 		  },
 		  {
-			"location": "https://localhost:37257"
+			"location": "tcp://localhost:37257"
 		  }
 	*/
 	var cert *cdx.Component
@@ -412,7 +412,7 @@ service:
 
 	containerRe := regexp.MustCompile(`^container://.+/cert\.pem$`)
 	filesystemRe := regexp.MustCompile(`^filesystem://.*/cert\.pem$`)
-	portRe := regexp.MustCompile(`^https://.+:` + regexp.QuoteMeta(mp.Port()) + `$`)
+	portRe := regexp.MustCompile(`^tcp://.+:` + regexp.QuoteMeta(mp.Port()) + `$`)
 	var cCount, fCount, pCount int
 	for _, occ := range *cert.Evidence.Occurrences {
 		t.Logf("occ.Location=%v", occ.Location)

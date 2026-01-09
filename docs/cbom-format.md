@@ -155,7 +155,7 @@ cbom-lens reports source locations as URIs
 - Container: `container://<config-name>/<image-ref>/<absolute-path>`
   - <config-name> comes from your configuration
   - <image-ref> can be a tag (e.g., repo:tag) or a digest (e.g., sha256:...)
-- Network endpoint: `protocol://host:port`
+- Network endpoint: `tcp://host:port`
 
 Example:
 
