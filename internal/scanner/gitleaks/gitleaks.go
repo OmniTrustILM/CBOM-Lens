@@ -66,7 +66,6 @@ func (d *Scanner) Scan(ctx context.Context, b []byte, path string) (model.Leaks,
 				findings[i].PEMBundle = bundle
 			}
 		}
-
 	}
 
 	return model.Leaks{
