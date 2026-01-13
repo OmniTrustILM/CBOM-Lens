@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/CZERTAINLY/CBOM-lens/internal/model"
@@ -265,15 +266,30 @@ func TestBuilder_BOM(t *testing.T) {
 		builder, err := NewBuilder(model.CBOM{Version: "1.6"})
 		require.NoError(t, err)
 
-		builder.components["comp-1"] = &cdx.Component{
-			BOMRef: "comp-1",
-			Name:   "test-component",
-			Type:   cdx.ComponentTypeLibrary,
+		var components = []cdx.Component{
+			{
+				BOMRef: "comp-1",
+				Name:   "test-component-1",
+				Type:   cdx.ComponentTypeLibrary,
+			},
+			{
+				BOMRef: "crypt/library@sha256:this-is-a-hash",
+				Name:   "test-component-2",
+				Type:   cdx.ComponentTypeLibrary,
+			},
 		}
+
+		builder.AppendDetections(t.Context(),
+			model.Detection{Components: components},
+		)
 
 		bom := builder.BOM()
 
-		require.Len(t, *bom.Components, 1)
+		require.Len(t, *bom.Components, 2)
+
+		var uuidSuffix = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+		require.Regexp(t, uuidSuffix, (*bom.Components)[0].BOMRef)
+		require.Regexp(t, uuidSuffix, (*bom.Components)[1].BOMRef)
 	})
 
 	t.Run("BOM metadata", func(t *testing.T) {
