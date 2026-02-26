@@ -289,7 +289,7 @@ func decodeRegisterResponse(ctx context.Context, resp *http.Response) error {
 					slog.Debug("Czertainly core connector already registered.")
 					return nil
 				}
-				sb.WriteString(fmt.Sprintf("%s ", cpy))
+				fmt.Fprintf(&sb, "%s ", cpy)
 			}
 			return fmt.Errorf("status code: %d, message: %s", resp.StatusCode, sb.String())
 		}

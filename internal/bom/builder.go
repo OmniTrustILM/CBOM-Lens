@@ -286,7 +286,7 @@ func replaceBOMReferences(refs map[string]string, v reflect.Value) {
 	}
 
 	switch v.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if v.IsNil() {
 			return
 		}
@@ -306,7 +306,7 @@ func replaceBOMReferences(refs map[string]string, v reflect.Value) {
 			}
 
 			// Check if this field is a BOMReference
-			if field.Type() == reflect.TypeOf(cdx.BOMReference("")) {
+			if field.Type() == reflect.TypeFor[cdx.BOMReference]() {
 				oldRef := field.Interface().(cdx.BOMReference)
 				if oldRef != "" {
 					if safeRef, ok := refs[string(oldRef)]; ok {

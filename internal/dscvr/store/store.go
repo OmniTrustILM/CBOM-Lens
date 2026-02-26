@@ -31,21 +31,21 @@ type DiscoveryRow struct {
 
 func (d DiscoveryRow) String() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("uuid: %q, in_progress: %t", d.UUID, d.InProgress))
+	fmt.Fprintf(&sb, "uuid: %q, in_progress: %t", d.UUID, d.InProgress)
 	if d.Success != nil {
-		sb.WriteString(fmt.Sprintf(", success: %t", *d.Success))
+		fmt.Fprintf(&sb, ", success: %t", *d.Success)
 	} else {
-		sb.WriteString(", success: nil")
+		fmt.Fprint(&sb, ", success: nil")
 	}
 	if d.UploadKey != nil {
-		sb.WriteString(fmt.Sprintf(", upload_key: %q", *d.UploadKey))
+		fmt.Fprintf(&sb, ", upload_key: %q", *d.UploadKey)
 	} else {
-		sb.WriteString(", upload_key: nil")
+		fmt.Fprint(&sb, ", upload_key: nil")
 	}
 	if d.FailureReason != nil {
-		sb.WriteString(fmt.Sprintf(", failure_reason: %q", *d.FailureReason))
+		fmt.Fprintf(&sb, ", failure_reason: %q", *d.FailureReason)
 	} else {
-		sb.WriteString(", failure_reason: nil")
+		fmt.Fprint(&sb, ", failure_reason: nil")
 	}
 	return sb.String()
 }

@@ -811,7 +811,7 @@ func TestDecodeRegisterResponse(t *testing.T) {
 		name        string
 		statusCode  int
 		contentType string
-		body        interface{}
+		body        any
 		wantErr     bool
 		errContains string
 	}{
