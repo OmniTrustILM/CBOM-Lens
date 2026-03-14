@@ -106,7 +106,7 @@ type supportedFunctionEndpoint struct {
 }
 
 type attrCodeblock struct {
-	Version     *int                   `json:"version,omitempty"`
+	Version     *string                `json:"version,omitempty"`
 	UUID        string                 `json:"uuid"`
 	Name        string                 `json:"name"`
 	Description *string                `json:"description,omitempty"`

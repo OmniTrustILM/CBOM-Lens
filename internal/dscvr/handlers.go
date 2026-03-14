@@ -318,7 +318,7 @@ func (s *Server) listAttributeDefinitions(w http.ResponseWriter, r *http.Request
 	}
 
 	info := attrCodeblock{
-		Version:     ptrInt(2),
+		Version:     ptrString("v2"),
 		UUID:        lensConfigurationInfoAttrUUID,
 		Name:        lensConfigurationInfoAttrName,
 		Description: ptrString("Describe configuration options for scanning."),
@@ -336,7 +336,7 @@ func (s *Server) listAttributeDefinitions(w http.ResponseWriter, r *http.Request
 	}
 
 	config := attrCodeblock{
-		Version:     ptrInt(2),
+		Version:     ptrString("v2"),
 		UUID:        lensConfigurationAttrUUID,
 		Name:        lensConfigurationAttrName,
 		Description: ptrString("Configuration options for scanning."),
