@@ -239,7 +239,3 @@ func validateAttr(attrs []attrCodeblock) error {
 func ptrString(v string) *string {
 	return &v
 }
-
-func ptrInt(v int) *int {
-	return &v
-}
