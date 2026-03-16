@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	cuelang.org/go v0.15.3
-	github.com/CycloneDX/cyclonedx-go v0.9.3
+	github.com/CycloneDX/cyclonedx-go v0.10.0
 	github.com/Ullaakut/nmap/v3 v3.1.0
 	github.com/anchore/stereoscope v0.1.20
 	github.com/creasty/defaults v1.8.0
