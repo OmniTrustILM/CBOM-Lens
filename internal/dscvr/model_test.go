@@ -2,6 +2,7 @@ package dscvr
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"testing"
 
 	"github.com/CZERTAINLY/CBOM-lens/internal/model"
@@ -272,4 +273,40 @@ func TestValidateAttr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAttrCodeblock_UnmarshalJSON(t *testing.T) {
+	const input = `
+{
+  "uuid":"eb87e85b-297c-44f9-8f69-eebc86bf7c65",
+  "name":"cbom_lens_scan_configuration",
+  "contentType":"codeblock",
+  "content":[{
+    "reference":null,
+    "data":{"code":"dGVzdC55YW1s","language":"yaml"}}
+  ],
+  "version":"v2"
+ }
+`
+
+	var expected = attrCodeblock{
+		UUID:        "eb87e85b-297c-44f9-8f69-eebc86bf7c65",
+		Name:        "cbom_lens_scan_configuration",
+		ContentType: ptrString("codeblock"),
+		Version:     ptrString("v2"),
+		Content: []attrCodeblockContent{
+			{
+				Data: attrCodeblockContentData{Code: "dGVzdC55YW1s", Language: "yaml"},
+			},
+		},
+	}
+
+	var aBlock attrCodeblock
+	err := json.Unmarshal([]byte(input), &aBlock)
+	require.NoError(t, err)
+	for i := range aBlock.Content {
+		require.NotEmpty(t, aBlock.Content[i].RawData)
+		aBlock.Content[i].RawData = nil
+	}
+	require.Equal(t, expected, aBlock)
 }
