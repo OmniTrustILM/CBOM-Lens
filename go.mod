@@ -1,6 +1,6 @@
 module github.com/CZERTAINLY/CBOM-lens
 
-go 1.26.1
+go 1.26
 
 require (
 	cuelang.org/go v0.16.0
