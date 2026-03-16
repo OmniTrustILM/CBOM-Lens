@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	repositoryUploadPath = "api/v1/bom"
+	repositoryUploadPath      = "api/v1/bom"
+	attributeDefinitionVersion = "2"
 )
 
 func (s *Server) getDiscovery(w http.ResponseWriter, r *http.Request) {
@@ -318,7 +319,7 @@ func (s *Server) listAttributeDefinitions(w http.ResponseWriter, r *http.Request
 	}
 
 	info := attrCodeblock{
-		Version:     ptrString("2"),
+		Version:     ptrString(attributeDefinitionVersion),
 		UUID:        lensConfigurationInfoAttrUUID,
 		Name:        lensConfigurationInfoAttrName,
 		Description: ptrString("Describe configuration options for scanning."),
@@ -336,7 +337,7 @@ func (s *Server) listAttributeDefinitions(w http.ResponseWriter, r *http.Request
 	}
 
 	config := attrCodeblock{
-		Version:     ptrString("2"),
+		Version:     ptrString(attributeDefinitionVersion),
 		UUID:        lensConfigurationAttrUUID,
 		Name:        lensConfigurationAttrName,
 		Description: ptrString("Configuration options for scanning."),
