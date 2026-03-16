@@ -273,8 +273,8 @@ func (s safeRefs) dependency(ctx context.Context, bomRef string, depsp *[]string
 }
 
 func safeRef(bomRef string) string {
-	uid := uuid.New()
 	before, _, ok := strings.Cut(bomRef, "@")
+	uid := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(bomRef))
 	if !ok {
 		return uid.String()
 	}

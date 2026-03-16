@@ -257,6 +257,9 @@ func addAlgorithmCrpyoFunctions(compo *cdx.Component, functions ...cdx.CryptoFun
 		set[f] = struct{}{}
 	}
 	funcs := slices.Collect(maps.Keys(set))
+	slices.SortFunc(funcs, func(a, b cdx.CryptoFunction) int {
+		return strings.Compare(string(a), string(b))
+	})
 	var p *[]cdx.CryptoFunction
 	if len(funcs) != 0 {
 		p = &funcs
