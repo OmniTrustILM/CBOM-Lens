@@ -157,6 +157,9 @@ func walkKey(
 			locationName = "(Default)"
 		}
 		location := fmt.Sprintf("registry://%s:%s/%s/%s", hive, view, normPath, locationName)
+		if normPath == "" {
+			location = fmt.Sprintf("registry://%s:%s/%s", hive, view, locationName)
+		}
 		entry := registryEntry{location: location, data: data}
 		if !yield(entry, nil) {
 			return false
