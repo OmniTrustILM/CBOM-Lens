@@ -57,12 +57,12 @@ This scans `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\SystemCertificates` and all su
 
 Include and exclude filters use Go regular expressions. Key paths are normalised to forward slashes before matching.
 
-- When `include.keys` is non-empty, only keys whose path matches at least one pattern are processed.
-- When `exclude.keys` is non-empty, keys whose path matches any pattern are skipped (subtree is pruned).
+- When `include.keys` is non-empty, values are only yielded for keys whose path matches at least one pattern. Subkey traversal continues regardless, so a pattern like `CryptoStore` will match `SOFTWARE/CryptoStore` even when the scan root is `SOFTWARE`.
+- When `exclude.keys` is non-empty, keys whose path matches any pattern are pruned entirely (values and all subkeys skipped).
 - `include.values` and `exclude.values` work the same way on value names.
 - Exclude takes precedence — a key or value matching both include and exclude is skipped.
 
-Example — scan only `CryptoStore` subtrees, skip anything under `Telemetry`:
+Example — scan from `SOFTWARE`, yield values only under `CryptoStore` subtrees, skip anything under `Telemetry`:
 
 ```yaml
 registry:

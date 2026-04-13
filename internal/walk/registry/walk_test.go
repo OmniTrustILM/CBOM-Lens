@@ -159,14 +159,40 @@ func TestWalkKey_MaxDepth_stopsRecursion(t *testing.T) {
 func TestWalkKey_IncludeKeyPattern_filters(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	key := mock.NewMockRegistryKey(ctrl)
-	// No mock expectations at all — key path "SOFTWARE" does not match the include pattern
-	// "CryptoStore", so walkKey returns before calling ReadValueNames or ReadSubKeyNames.
+	// "SOFTWARE" does not match the include pattern "CryptoStore", so no values are yielded
+	// from this key.  Subkey traversal still happens (no subkeys here → empty result).
+	key.EXPECT().ReadSubKeyNames().Return([]string{}, nil)
 
 	cfg := model.Registry{Include: model.RegistryFilter{Keys: []string{"CryptoStore"}}}
 	c, err := registry.Compile(cfg)
 	require.NoError(t, err)
 	entries, _ := collectWalk(context.Background(), key, `SOFTWARE`, "HKLM", "64", 0, cfg, c)
 	assert.Empty(t, entries)
+}
+
+func TestWalkKey_IncludeKeyPattern_recursesDeeperSubkeys(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	root := mock.NewMockRegistryKey(ctrl)
+	child := mock.NewMockRegistryKey(ctrl)
+
+	// Root key "SOFTWARE" does not match include "CryptoStore" → no value reads on root,
+	// but subkey traversal continues.  The child "CryptoStore" does match → values yielded.
+	root.EXPECT().ReadSubKeyNames().Return([]string{"CryptoStore"}, nil)
+	root.EXPECT().OpenSubKey("CryptoStore").Return(child, nil)
+
+	child.EXPECT().ReadValueNames().Return([]string{"cert"}, nil)
+	child.EXPECT().ReadValueType("cert").Return(uint32(3), nil)
+	child.EXPECT().ReadBinaryValue("cert").Return([]byte{0x01}, nil)
+	child.EXPECT().ReadSubKeyNames().Return([]string{}, nil)
+	child.EXPECT().Close().Return(nil)
+
+	cfg := model.Registry{Include: model.RegistryFilter{Keys: []string{"CryptoStore"}}}
+	c, err := registry.Compile(cfg)
+	require.NoError(t, err)
+	entries, errs := collectWalk(context.Background(), root, `SOFTWARE`, "HKLM", "64", 0, cfg, c)
+	require.Empty(t, errs)
+	require.Len(t, entries, 1)
+	assert.Equal(t, "registry://HKLM:64/SOFTWARE/CryptoStore/cert", entries[0].Location())
 }
 
 func TestWalkKey_ExcludeKeyPattern_skipsSubtree(t *testing.T) {

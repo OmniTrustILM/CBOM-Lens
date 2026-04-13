@@ -71,18 +71,6 @@ func matchesAny(s string, patterns []*regexp.Regexp) bool {
 	return false
 }
 
-// keyAllowed reports whether the key path (relative to the scan root, forward-slash normalised)
-// passes the include/exclude key filters.
-func keyAllowed(keyPath string, c compiled) bool {
-	if len(c.includeKeys) > 0 && !matchesAny(keyPath, c.includeKeys) {
-		return false
-	}
-	if len(c.excludeKeys) > 0 && matchesAny(keyPath, c.excludeKeys) {
-		return false
-	}
-	return true
-}
-
 // valueAllowed reports whether a value name passes the include/exclude value filters.
 func valueAllowed(name string, c compiled) bool {
 	if len(c.includeValues) > 0 && !matchesAny(name, c.includeValues) {
@@ -119,50 +107,53 @@ func walkKey(
 
 	normPath := normaliseKey(keyPath)
 
-	// Key include/exclude filter
-	if !keyAllowed(normPath, c) {
-		// Subkeys will also be skipped (subtree pruning)
+	// Exclude filter prunes the entire subtree (values and all subkeys).
+	if len(c.excludeKeys) > 0 && matchesAny(normPath, c.excludeKeys) {
 		return true
 	}
 
-	// Process values at this key
-	names, err := key.ReadValueNames()
-	if err != nil {
-		if !yield(nil, fmt.Errorf("registry: ReadValueNames %s: %w", normPath, err)) {
-			return false
-		}
-	}
-	for _, name := range names {
-		if ctx.Err() != nil {
-			return false
-		}
-		if !valueAllowed(name, c) {
-			continue
-		}
-		data, ok, err := convertValue(key, name)
+	// Include filter applies only to value emission.  Subkey traversal
+	// continues regardless so that a pattern like "CryptoStore" can match
+	// SOFTWARE/CryptoStore even when the scan root is SOFTWARE.
+	if len(c.includeKeys) == 0 || matchesAny(normPath, c.includeKeys) {
+		names, err := key.ReadValueNames()
 		if err != nil {
-			if !yield(nil, fmt.Errorf("%s:%s/%s: %w", hive, view, normPath, err)) {
+			if !yield(nil, fmt.Errorf("registry: ReadValueNames %s: %w", normPath, err)) {
 				return false
 			}
-			continue
 		}
-		if !ok {
-			continue // unsupported type — silently skip
-		}
-		if cfg.MaxValueSize > 0 && len(data) > cfg.MaxValueSize {
-			continue
-		}
-		locationName := name
-		if locationName == "" {
-			locationName = "(Default)"
-		}
-		location := fmt.Sprintf("registry://%s:%s/%s/%s", hive, view, normPath, locationName)
-		if normPath == "" {
-			location = fmt.Sprintf("registry://%s:%s/%s", hive, view, locationName)
-		}
-		entry := registryEntry{location: location, data: data}
-		if !yield(entry, nil) {
-			return false
+		for _, name := range names {
+			if ctx.Err() != nil {
+				return false
+			}
+			if !valueAllowed(name, c) {
+				continue
+			}
+			data, ok, err := convertValue(key, name)
+			if err != nil {
+				if !yield(nil, fmt.Errorf("%s:%s/%s: %w", hive, view, normPath, err)) {
+					return false
+				}
+				continue
+			}
+			if !ok {
+				continue // unsupported type — silently skip
+			}
+			if cfg.MaxValueSize > 0 && len(data) > cfg.MaxValueSize {
+				continue
+			}
+			locationName := name
+			if locationName == "" {
+				locationName = "(Default)"
+			}
+			location := fmt.Sprintf("registry://%s:%s/%s/%s", hive, view, normPath, locationName)
+			if normPath == "" {
+				location = fmt.Sprintf("registry://%s:%s/%s", hive, view, locationName)
+			}
+			entry := registryEntry{location: location, data: data}
+			if !yield(entry, nil) {
+				return false
+			}
 		}
 	}
 
