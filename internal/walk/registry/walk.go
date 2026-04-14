@@ -157,7 +157,11 @@ func walkKey(
 		}
 	}
 
-	// Recurse into subkeys unless at depth limit
+	// Recurse into subkeys unless at depth limit.
+	// When MaxDepth == 0 (unlimited) the guard is skipped and the entire
+	// subtree is walked.  This is safe because the Windows registry is a
+	// strict tree — the hive format cannot contain cycles or symbolic links
+	// between keys, so recursion always terminates.
 	if cfg.MaxDepth > 0 && depth >= cfg.MaxDepth {
 		return true
 	}
