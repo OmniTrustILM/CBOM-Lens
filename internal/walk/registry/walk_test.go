@@ -354,6 +354,47 @@ func TestWalkKey_DefaultValue_locationName(t *testing.T) {
 	assert.Equal(t, "(Default)", info.Name())
 }
 
+func TestWalkKey_ExcludeTakesPrecedence_keyMatchesBoth(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	root := mock.NewMockRegistryKey(ctrl)
+
+	// "CryptoStore" matches both include and exclude — exclude wins,
+	// so the subtree is pruned entirely (no OpenSubKey, no values).
+	root.EXPECT().ReadSubKeyNames().Return([]string{"CryptoStore"}, nil)
+	// ReadValueNames on root: root path "SOFTWARE" is not in include → skipped.
+	// No OpenSubKey expected — CryptoStore is excluded before opening.
+
+	cfg := model.Registry{
+		Include: model.RegistryFilter{Keys: []string{"CryptoStore"}},
+		Exclude: model.RegistryFilter{Keys: []string{"CryptoStore"}},
+	}
+	c, err := registry.Compile(cfg)
+	require.NoError(t, err)
+	entries, errs := collectWalk(context.Background(), root, `SOFTWARE`, "HKLM", "64", 0, cfg, c)
+	assert.Empty(t, errs)
+	assert.Empty(t, entries, "exclude takes precedence — key matching both include and exclude is skipped")
+}
+
+func TestWalkKey_ExcludeTakesPrecedence_valueMatchesBoth(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	key := mock.NewMockRegistryKey(ctrl)
+
+	// Value "cert" matches both include.values and exclude.values — exclude wins.
+	key.EXPECT().ReadValueNames().Return([]string{"cert"}, nil)
+	// ReadValueType NOT expected — value is filtered out before type read.
+	key.EXPECT().ReadSubKeyNames().Return([]string{}, nil)
+
+	cfg := model.Registry{
+		Include: model.RegistryFilter{Values: []string{"cert"}},
+		Exclude: model.RegistryFilter{Values: []string{"cert"}},
+	}
+	c, err := registry.Compile(cfg)
+	require.NoError(t, err)
+	entries, errs := collectWalk(context.Background(), key, `SOFTWARE\App`, "HKLM", "64", 0, cfg, c)
+	assert.Empty(t, errs)
+	assert.Empty(t, entries, "exclude takes precedence — value matching both include and exclude is skipped")
+}
+
 func TestLocationFormat_backslashNormalised(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	key := mock.NewMockRegistryKey(ctrl)
