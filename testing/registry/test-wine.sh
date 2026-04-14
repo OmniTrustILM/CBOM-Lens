@@ -22,7 +22,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 KEEP=false
-[ "${1:-}" = "--keep" ] && KEEP=true
+[[ "${1:-}" = "--keep" ]] && KEEP=true
 
 WINE="${WINE:-wine}"
 WINEPREFIX="${PROJECT_ROOT}/testing/registry/wine"
@@ -39,43 +39,44 @@ cleanup() {
     # Remove test registry key (ignore errors if it doesn't exist)
     "$WINE" reg delete "$REG_KEY" /f 2>/dev/null || true
 
-    [ -n "$CONFIG_FILE" ] && rm -f "$CONFIG_FILE"
-    [ -n "$OUTPUT_FILE" ] && rm -f "$OUTPUT_FILE"
+    [[ -n "$CONFIG_FILE" ]] && rm -f "$CONFIG_FILE"
+    [[ -n "$OUTPUT_FILE" ]] && rm -f "$OUTPUT_FILE"
 
-    if [ "$KEEP" = false ]; then
+    if [[ "$KEEP" = false ]]; then
         rm -f "$BINARY"
     else
         echo "    Binary kept at: $BINARY"
     fi
+    return 0
 }
 trap cleanup EXIT
 
 # --- Preflight checks ---
 
 if ! command -v "$WINE" &>/dev/null; then
-    echo "ERROR: $WINE not found. Install wine (e.g. 'sudo zypper install wine' or 'sudo apt install wine64')."
+    echo "ERROR: $WINE not found. Install wine (e.g. 'sudo zypper install wine' or 'sudo apt install wine64')." >&2
     exit 1
 fi
 
 if ! command -v go &>/dev/null; then
-    echo "ERROR: go not found."
+    echo "ERROR: go not found." >&2
     exit 1
 fi
 
 if ! command -v openssl &>/dev/null; then
-    echo "ERROR: openssl not found."
+    echo "ERROR: openssl not found." >&2
     exit 1
 fi
 
 # Initialise WINEPREFIX — suppress Mono/Gecko install dialogs.
-if [ ! -d "$WINEPREFIX" ]; then
+if [[ ! -d "$WINEPREFIX" ]]; then
     echo "[*] Initialising WINEPREFIX at $WINEPREFIX..."
     WINEDLLOVERRIDES="mscoree=d;mshtml=d" DISPLAY= "$WINE" wineboot --init 2>/dev/null || true
 fi
 
 # --- Step 1: Cross-compile ---
 
-if [ ! -x "${BINARY}" ]; then
+if [[ ! -x "${BINARY}" ]]; then
     echo "[*] Cross-compiling cbom-lens for windows/amd64..."
     (cd "$PROJECT_ROOT" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o "$BINARY" ./cmd/cbom-lens)
     echo "    -> $BINARY"
@@ -85,8 +86,8 @@ fi
 
 echo "[*] Generating self-signed certificate..."
 PEM_CERT="$(openssl req -x509 -newkey rsa:2048 -keyout /dev/null -nodes -days 1 -subj '/CN=cbom-lens-wine-test' 2>/dev/null)"
-if [ -z "$PEM_CERT" ]; then
-    echo "ERROR: failed to generate certificate."
+if [[ -z "$PEM_CERT" ]]; then
+    echo "ERROR: failed to generate certificate." >&2
     exit 1
 fi
 echo "    -> $(echo "$PEM_CERT" | head -1)"
@@ -123,7 +124,7 @@ echo "    Wine config: $WIN_CONFIG"
 
 echo "[*] Validating output..."
 
-if [ ! -s "$OUTPUT_FILE" ]; then
+if [[ ! -s "$OUTPUT_FILE" ]]; then
     echo "FAIL: output file is empty."
     exit 1
 fi
@@ -136,7 +137,7 @@ if ! command -v jq &>/dev/null; then
 fi
 
 BOM_FORMAT="$(jq -r '.bomFormat // empty' "$OUTPUT_FILE")"
-if [ -z "$BOM_FORMAT" ]; then
+if [[ -z "$BOM_FORMAT" ]]; then
     echo "FAIL: output is not valid CBOM (missing bomFormat)."
     echo "    Output:"
     cat "$OUTPUT_FILE"
@@ -147,7 +148,7 @@ COMPONENT_COUNT="$(jq '.components | length' "$OUTPUT_FILE")"
 echo "    bomFormat: $BOM_FORMAT"
 echo "    components: $COMPONENT_COUNT"
 
-if [ "$COMPONENT_COUNT" -eq 0 ]; then
+if [[ "$COMPONENT_COUNT" -eq 0 ]]; then
     echo "FAIL: no components found — expected at least 1 from the PEM certificate."
     exit 1
 fi
