@@ -16,7 +16,7 @@ containers:
         - gcr.io/distroless/base-debian12:latest
         - docker.io/library/alpine:3.22.1
 registry:
-  enabled: false  # Windows-only; no-op on other platforms
+  enabled: false  # Windows-only; returns an error on other platforms
   paths:
     - hive: HKLM
       key: 'SOFTWARE\Microsoft\SystemCertificates'

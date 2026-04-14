@@ -186,7 +186,7 @@ registry:
 
 Notes:
 
-- Only runs on Windows. On other platforms the scanner is a no-op.
+- Only runs on Windows. Enabling the scanner on other platforms produces an error.
 - Supports depth limiting, include/exclude regex filters, and WOW64 dual-view scanning.
 
 For the full feature set, see the dedicated [Windows Registry scanning](registry-scanning.md) guide.

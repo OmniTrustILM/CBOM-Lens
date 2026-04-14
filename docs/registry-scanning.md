@@ -2,7 +2,7 @@
 
 CBOM-Lens can scan the Windows Registry for cryptographic materials stored as registry values (certificates, keys, PEM blobs). This is useful on Windows hosts where applications store TLS certificates or private keys in the registry rather than the filesystem.
 
-On non-Windows platforms the registry scanner is a no-op — it compiles but produces no entries.
+On non-Windows platforms the registry scanner returns an error when enabled, because the Windows registry is not available.
 
 ---
 

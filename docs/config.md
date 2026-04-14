@@ -85,7 +85,7 @@ This section configures a Docker and other compatible container engine scan.
 
 ## Registry
 
-Windows Registry scanning. No-op on non-Windows platforms. See the [Windows Registry scanning](registry-scanning.md) guide for usage examples.
+Windows Registry scanning. Enabling this on non-Windows platforms produces an error. See the [Windows Registry scanning](registry-scanning.md) guide for usage examples.
 
 - `enabled` (bool, default false) Enable registry scanning.
 - `paths` (list of RegistryPath) Registry locations to scan.
